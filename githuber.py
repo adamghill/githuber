@@ -23,10 +23,8 @@ def _get_repos(github, org_name=None, user_name=None):
         click.echo('Get repositories for {0}...'.format(org_name))
         repositories = organization.repositories()
     elif user_name:
-        raise Exception('Not implemented')
-
-        # click.echo('Get repositories for {0}...'.format(user_name))
-        # user = github.user(user_name)
+        click.echo('Get repositories for {0}...'.format(user_name))
+        repositories = github.repositories_by(user_name)
     else:
         raise Exception('No organization or username to get repositories for')
 
