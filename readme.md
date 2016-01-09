@@ -17,3 +17,8 @@ Githuber is a command-line tool to handle keeping a large number of GitHub organ
 # Run
 1. source .venv/bin/activate (if necessary)
 1. githuber --token={PERSONAL_ACCESS_TOKEN} --organization=github --get-repos
+
+# Credits
+- http://github3py.readthedocs.org/
+- http://pythonhosted.org/sarge/
+- http://click.pocoo.org/
