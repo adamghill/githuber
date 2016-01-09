@@ -33,26 +33,32 @@ def _get_repos(github, org_name=None, user_name=None):
     return repositories
 
 
-def clone_or_pull_repos(repositories, org_name=None, user_name=None):
+def _update_existing_repos(subdirectory, repo_names, directory_names):
     errors = []
-    subdirectory = org_name or user_name
-    repo_names = _get_repo_names(repositories)
-    directory_names = _get_directory_names(subdirectory)
     existing_repo_names = [val for val in directory_names if val in set(repo_names)]
-    new_repo_names = [val for val in repo_names if val not in set(directory_names)]
 
-    if existing_repo_names and False:
-        with click.progressbar(existing_repo_names, length=len(existing_repo_names), label='Update existing repos:') as repos:
+    if existing_repo_names:
+        progressbar_length = len(existing_repo_names)
+
+        with click.progressbar(existing_repo_names, length=progressbar_length, label='Update existing repos:') as repos:
             for repo_name in repos:
                 cwd = os.path.join(subdirectory, repo_name)
-                r = run('git pull origin master'.format(repo_name), cwd=cwd,
-                    stdout=Capture(), stderr=Capture())
+                r = run('git pull origin master', cwd=cwd, stdout=Capture(), stderr=Capture())
 
                 if r.returncode:
                     errors.append(r.stderr.text)
 
+    return errors
+
+
+def _retrieve_new_repos(subdirectory, repositories, repo_names, directory_names):
+    errors = []
+    new_repo_names = [val for val in repo_names if val not in set(directory_names)]
+
     if new_repo_names:
-        with click.progressbar(new_repo_names, length=len(new_repo_names), label='Retrieve new repos:') as repos:
+        progressbar_length = len(new_repo_names)
+
+        with click.progressbar(new_repo_names, length=progressbar_length, label='Retrieve new repos:') as repos:
             for repo_name in repos:
                 git_url = None
                 matched_repos = filter(lambda r: r.name == repo_name, repositories)
@@ -67,8 +73,20 @@ def clone_or_pull_repos(repositories, org_name=None, user_name=None):
                 if r.returncode:
                     errors.append(r.stderr.text)
 
+    return errors
+
+
+def update_and_retrieve_repos(repositories, org_name=None, user_name=None):
+    subdirectory = org_name or user_name
+    repo_names = _get_repo_names(repositories)
+    directory_names = _get_directory_names(subdirectory)
+
+    errors = []
+    errors.extend(_update_existing_repos(subdirectory, repo_names, directory_names))
+    errors.extend(_retrieve_new_repos(subdirectory, repositories, repo_names, directory_names))
+
     for error in errors:
-        click.echo('Error: {0}'.format(error))
+        click.echo('ERROR: {0}'.format(error))
 
     for directory_name in directory_names:
         if directory_name not in repo_names:
@@ -140,13 +158,9 @@ def main(token, org_name, user_name, commits_year, repo_count, get_repos):
         click.echo('Number of repos: {0}'.format(len(repo_names)))
 
     if get_repos:
-        clone_or_pull_repos(repositories, org_name=org_name, user_name=user_name)
+        update_and_retrieve_repos(repositories, org_name=org_name, user_name=user_name)
 
     commits_month = None
     commits_day = None
     if commits_year or commits_month or commits_day:
         get_commit_count(repo_names, commits_year=commits_year, commits_month=commits_month, commits_day=commits_day)
-
-
-if __name__ == '__main__':
-    main()

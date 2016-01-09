@@ -12,8 +12,8 @@ Githuber is a command-line tool to handle keeping a large number of GitHub organ
 # Install
 1. virtualenv .venv
 1. source .venv/bin/activate
-1. pip install -r requirements.txt
+1. pip install --editable .
 
 # Run
 1. source .venv/bin/activate (if necessary)
-1. python pull.py --token={PERSONAL_ACCESS_TOKEN} --organization=github --get-repos
+1. githuber --token={PERSONAL_ACCESS_TOKEN} --organization=github --get-repos
