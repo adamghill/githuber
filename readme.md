@@ -3,7 +3,7 @@ Githuber is a command-line tool to handle keeping a large number of GitHub organ
 
 # Arguments
 - --help: list all of the possible arguments
-- --token: GitHub Personal Access Token ()
+- --token: GitHub Personal Access Token (https://help.github.com/articles/creating-an-access-token-for-command-line-use/)
 - --organization=TEXT: Name of the organization to pull repositories for
 - --commits-year=TEXT: Total the number commits across all repositories for the year specified
 - --repo-count: Show the number of repositories
