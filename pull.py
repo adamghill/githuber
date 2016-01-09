@@ -23,47 +23,64 @@ def _get_repos(github, org_name=None, user_name=None):
         click.echo('Get repositories for {0}...'.format(org_name))
         repositories = organization.repositories()
     elif user_name:
-        click.echo('Get repositories for {0}...'.format(user_name))
         raise Exception('Not implemented')
-        user = github.user(user_name)
-        repositories = user.subscriptions(user)
+
+        # click.echo('Get repositories for {0}...'.format(user_name))
+        # user = github.user(user_name)
     else:
-        raise Exception('No repos')
+        raise Exception('No organization or username to get repositories for')
 
     return repositories
 
 
-def clone_or_pull_repos(repositories):
-    repo_count = len(_get_repo_names(repositories))
-    idx = 0
+def clone_or_pull_repos(repositories, org_name=None, user_name=None):
     errors = []
+    subdirectory = org_name or user_name
+    repo_names = _get_repo_names(repositories)
+    directory_names = _get_directory_names(subdirectory)
+    existing_repo_names = [val for val in directory_names if val in set(repo_names)]
+    new_repo_names = [val for val in repo_names if val not in set(directory_names)]
 
-    with click.progressbar(repositories, length=repo_count, label='Updating code:') as repos:
-        for repo in repos:
-            if os.path.isdir(repo.name):
-                r = run('git pull origin master'.format(repo.name), cwd=repo.name, stdout=Capture(), stderr=Capture())
+    if existing_repo_names and False:
+        with click.progressbar(existing_repo_names, length=len(existing_repo_names), label='Update existing repos:') as repos:
+            for repo_name in repos:
+                cwd = os.path.join(subdirectory, repo_name)
+                r = run('git pull origin master'.format(repo_name), cwd=cwd,
+                    stdout=Capture(), stderr=Capture())
 
                 if r.returncode:
                     errors.append(r.stderr.text)
-            else:
-                git_url = repo.git_url.replace('git://github.com/', 'git@github.com:')
-                r = run('git clone {0}'.format(git_url), stdout=Capture(), stderr=Capture())
+
+    if new_repo_names:
+        with click.progressbar(new_repo_names, length=len(new_repo_names), label='Retrieve new repos:') as repos:
+            for repo_name in repos:
+                git_url = None
+                matched_repos = filter(lambda r: r.name == repo_name, repositories)
+
+                if matched_repos and matched_repos[0]:
+                    git_url = matched_repos[0].git_url
+                    git_url = git_url.replace('git://github.com/', 'git@github.com:')
+                    cwd = subdirectory
+
+                    r = run('git clone {0}'.format(git_url), cwd=cwd, stdout=Capture(), stderr=Capture())
 
                 if r.returncode:
                     errors.append(r.stderr.text)
-
-            idx += 1
 
     for error in errors:
         click.echo('Error: {0}'.format(error))
 
-
-def check_for_extra_repos(repo_names):
-    directory_names = [d for d in os.listdir('.') if os.path.isdir(os.path.join('.', d)) and not d.startswith('.')]
-
     for directory_name in directory_names:
         if directory_name not in repo_names:
             click.echo('Directory is not in the list of repos: {0}'.format(directory_name))
+
+
+def _get_directory_names(subdirectory):
+    if not os.path.isdir(subdirectory):
+        os.mkdir(subdirectory)
+
+    directory_names = [d for d in os.listdir(subdirectory) if os.path.isdir(os.path.join(subdirectory, d)) and not d.startswith('.')]
+    return directory_names
 
 
 def get_commit_count(repo_names, commits_year=None, commits_month=None, commits_day=None):
@@ -107,13 +124,13 @@ def _get_repo_names(repositories):
 # @click.option('--commits-month', default=None, help='Month to get commits for')
 # @click.option('--commits-day', default=None, help='Day to get commits for')
 @click.option('--repo-count', is_flag=True, help='Show the count of repos for the organization/user')
-@click.option('--pull-repos', is_flag=True, help='Pull the repos')
-def main(token, org_name, user_name, commits_year, repo_count, pull_repos):
+@click.option('--get-repos', is_flag=True, help='Get any new repos and update existing repos')
+def main(token, org_name, user_name, commits_year, repo_count, get_repos):
     if not token:
-        raise Exception('Please provide a token')
+        return click.echo('ERROR: Please provide a token')
 
     if not org_name and not user_name:
-        raise Exception('Please provide an organization or user')
+        return click.echo('ERROR: Please provide an organization or user')
 
     github = _github_login(token)
     repositories = _get_repos(github, org_name, user_name)
@@ -122,9 +139,8 @@ def main(token, org_name, user_name, commits_year, repo_count, pull_repos):
     if repo_count:
         click.echo('Number of repos: {0}'.format(len(repo_names)))
 
-    if pull_repos:
-        clone_or_pull_repos(repositories)
-        check_for_extra_repos(repo_names)
+    if get_repos:
+        clone_or_pull_repos(repositories, org_name=org_name, user_name=user_name)
 
     commits_month = None
     commits_day = None
