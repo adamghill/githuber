@@ -1,30 +1,34 @@
+from functools32 import lru_cache
 from github3 import login
 from sarge import run, Capture
 import click
 import os
 
+
 import logging
 logger = logging.getLogger(__name__)
 
 
+@lru_cache()
 def _github_login(token):
     click.echo('Authenticating with token...')
     github = login(token=token)
     return github
 
 
-def _get_repos(github, org_name=None, user_name=None):
+@lru_cache()
+def _get_repos(github, org_name=None, username=None):
     repositories = None
 
     if org_name:
         click.echo('Get the {0} organization...'.format(org_name))
         organization = github.organization(org_name)
 
-        click.echo('Get repositories for {0}...'.format(org_name))
+        click.echo('Get repositories for the "{0}"" organization...'.format(org_name))
         repositories = organization.repositories()
-    elif user_name:
-        click.echo('Get repositories for {0}...'.format(user_name))
-        repositories = github.repositories_by(user_name)
+    elif username:
+        click.echo('Get repositories for the "{0}" user...'.format(username))
+        repositories = github.repositories_by(username)
     else:
         raise Exception('No organization or username to get repositories for')
 
@@ -127,6 +131,7 @@ def get_commit_count(repo_names, commits_year=None, commits_month=None, commits_
     click.echo('Number of commits: {0}'.format(commits_count))
 
 
+@lru_cache()
 def _get_repo_names(repositories):
     return [r.name for r in repositories]
 
@@ -134,38 +139,31 @@ def _get_repo_names(repositories):
 @click.command()
 @click.option('--token', help='Token', prompt=True, hide_input=True)
 @click.option('--organization', 'org_name', default=None, help='Organization name')
-@click.option('--user', 'user_name', default=None, help='Username')
+@click.option('--user', 'username', default=None, help='Username')
 @click.option('--commits-year', default=None, help='Year to get commits for')
 # @click.option('--commits-month', default=None, help='Month to get commits for')
 # @click.option('--commits-day', default=None, help='Day to get commits for')
 @click.option('--repo-count', is_flag=True, help='Show the count of repos for the organization/user')
 @click.option('--get-repos', is_flag=True, help='Get any new repos and update existing repos')
 @click.option('--search', 'search_regex', default=None, help='Regex pattern to search for in the code')
-def main(token, org_name, user_name, commits_year, repo_count, get_repos, search_regex):
+def main(token, org_name, username, commits_year, repo_count, get_repos, search_regex):
     if not token:
         return click.echo('ERROR: Please provide a token')
 
-    if not org_name and not user_name:
+    if not org_name and not username:
         return click.echo('ERROR: Please provide an organization or user')
 
-    subdirectory = org_name or user_name
-    repo_names = None
-    github = None
+    subdirectory = org_name or username
 
     if get_repos:
         github = _github_login(token)
-        repositories = _get_repos(github, subdirectory)
-        repo_names = _get_repo_names(repositories)
-
-        update_and_retrieve_repos(repositories, org_name=org_name, user_name=user_name)
+        repositories = _get_repos(github, org_name=org_name, username=username)
+        update_and_retrieve_repos(repositories, subdirectory)
 
     if repo_count:
-        if not github:
-            github = _github_login(token)
-
-        if not repo_names:
-            repositories = _get_repos(github, subdirectory)
-            repo_names = _get_repo_names(repositories)
+        github = _github_login(token)
+        repositories = _get_repos(github, subdirectory)
+        repo_names = _get_repo_names(repositories)
 
         click.echo('Number of repos: {0}'.format(len(repo_names)))
 
