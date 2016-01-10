@@ -135,6 +135,16 @@ def _get_repo_names(repositories):
     return [r.name for r in repositories]
 
 
+def _echo(pipeline):
+    if pipeline.stderr:
+        for l in pipeline.stderr.readlines():
+            click.echo(l.strip())
+
+    if pipeline.stdout:
+        for l in pipeline.stdout.readlines():
+            click.echo(l.strip())
+
+
 @click.command()
 @click.option('--token', help='Token', prompt=True, hide_input=True)
 @click.option('--organization', 'org_name', default=None, help='Organization name')
@@ -172,10 +182,4 @@ def main(token, org_name, username, commits_year, count, update, search_regex):
         get_commit_count(repo_names, commits_year=commits_year, commits_month=commits_month, commits_day=commits_day)
 
     if search_regex:
-        r = run('grin -i {0} {1} --emacs -s --force-color'.format(search_regex, subdirectory), stdout=Capture(), stderr=Capture())
-
-        if r.stderr.text:
-            click.echo(r.stderr.text)
-
-        if r.stdout.text:
-            click.echo(r.stdout.text)
+        _echo(run('grin -i {0} {1} --emacs -s --force-color'.format(search_regex, subdirectory), stdout=Capture(), stderr=Capture()))
