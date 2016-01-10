@@ -143,10 +143,10 @@ def _get_repo_names(repositories):
 @click.option('--commits-year', default=None, help='Year to get commits for')
 # @click.option('--commits-month', default=None, help='Month to get commits for')
 # @click.option('--commits-day', default=None, help='Day to get commits for')
-@click.option('--repo-count', is_flag=True, help='Show the count of repos for the organization/user')
-@click.option('--get-repos', is_flag=True, help='Get any new repos and update existing repos')
+@click.option('--count', is_flag=True, help='Show the count of repos for the organization/user')
+@click.option('--update', is_flag=True, help='Get any new repos and update existing repos')
 @click.option('--search', 'search_regex', default=None, help='Regex pattern to search for in the code')
-def main(token, org_name, username, commits_year, repo_count, get_repos, search_regex):
+def main(token, org_name, username, commits_year, count, update, search_regex):
     if not token:
         return click.echo('ERROR: Please provide a token')
 
@@ -155,12 +155,12 @@ def main(token, org_name, username, commits_year, repo_count, get_repos, search_
 
     subdirectory = org_name or username
 
-    if get_repos:
+    if update:
         github = _github_login(token)
         repositories = _get_repos(github, org_name=org_name, username=username)
         update_and_retrieve_repos(repositories, subdirectory)
 
-    if repo_count:
+    if count:
         github = _github_login(token)
         repositories = _get_repos(github, subdirectory)
         repo_names = _get_repo_names(repositories)

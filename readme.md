@@ -1,5 +1,5 @@
 # Summary
-Githuber is a command-line tool to handle keeping a large number of GitHub organization repositories up to date on your filesystem. There are also some reporting functions to get information about all of the repositories.
+Githuber is a command-line tool to handle keeping a large number of GitHub organization repositories up to date on your filesystem. There are also some reporting functions to get information about all of the repositories. This *will* clone all repositories to your filesystem.
 
 # Arguments
 - --help: list all of the possible arguments
@@ -7,8 +7,8 @@ Githuber is a command-line tool to handle keeping a large number of GitHub organ
 - --organization=TEXT: Name of the organization to pull repositories for
 - --user=TEXT: Username to pull repositories for
 - --commits-year=TEXT: Total the number commits across all repositories for the year specified
-- --repo-count: Show the number of repositories
-- --get-repos: Get any new repos and update existing repos
+- --count: Show the number of repositories
+- --update: Get any new repos and update existing repos
 - --search=TEXT: Regex pattern to search for in the repos
 
 # Install
@@ -18,7 +18,10 @@ Githuber is a command-line tool to handle keeping a large number of GitHub organ
 
 # Run
 1. source .venv/bin/activate (if necessary)
-1. githuber --token={PERSONAL_ACCESS_TOKEN} --organization=github --get-repos
+1. githuber --token={PERSONAL_ACCESS_TOKEN} --organization=github
+
+## Example commands
+- githuber --token={PERSONAL_ACCESS_TOKEN} --organization=github --update --count --search="rails"
 
 # Credits
 - http://github3py.readthedocs.org/
