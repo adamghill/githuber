@@ -28,3 +28,4 @@ Githuber is a command-line tool to handle keeping a large number of GitHub organ
 - http://pythonhosted.org/sarge/
 - http://click.pocoo.org/
 - https://pypi.python.org/pypi/grin
+- https://pypi.python.org/pypi/functools32

@@ -24,10 +24,10 @@ def _get_repos(github, org_name=None, username=None):
         click.echo('Get the {0} organization...'.format(org_name))
         organization = github.organization(org_name)
 
-        click.echo('Get repositories for the "{0}"" organization...'.format(org_name))
+        click.echo('Get repositories for the {0} organization...'.format(org_name))
         repositories = organization.repositories()
     elif username:
-        click.echo('Get repositories for the "{0}" user...'.format(username))
+        click.echo('Get repositories for the {0} user...'.format(username))
         repositories = github.repositories_by(username)
     else:
         raise Exception('No organization or username to get repositories for')
@@ -48,7 +48,7 @@ def _update_existing_repos(subdirectory, repo_names, directory_names):
                 r = run('git pull origin master', cwd=cwd, stdout=Capture(), stderr=Capture())
 
                 if r.returncode:
-                    errors.append(r.stderr.text)
+                    errors.append('Pulling {0} failed with: {1}'.format(cwd, r.stderr.text))
 
     return errors
 
@@ -69,11 +69,10 @@ def _retrieve_new_repos(subdirectory, repositories, repo_names, directory_names)
                     git_url = matched_repos[0].git_url
                     git_url = git_url.replace('git://github.com/', 'git@github.com:')
                     cwd = subdirectory
-
                     r = run('git clone {0}'.format(git_url), cwd=cwd, stdout=Capture(), stderr=Capture())
 
-                if r.returncode:
-                    errors.append(r.stderr.text)
+                    if r.returncode:
+                        errors.append('Cloning {0} failed with: {1}'.format(git_url, r.stderr.text))
 
     return errors
 
@@ -87,11 +86,11 @@ def update_and_retrieve_repos(repositories, subdirectory):
     errors.extend(_retrieve_new_repos(subdirectory, repositories, repo_names, directory_names))
 
     for error in errors:
-        click.echo('ERROR: {0}'.format(error))
+        click.echo(error)
 
     for directory_name in directory_names:
         if directory_name not in repo_names:
-            click.echo('Directory is not in the list of repos: {0}'.format(directory_name))
+            click.echo('Directory {0} is not in the list of repos'.format(directory_name))
 
 
 def _get_directory_names(subdirectory):
