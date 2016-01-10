@@ -74,8 +74,7 @@ def _retrieve_new_repos(subdirectory, repositories, repo_names, directory_names)
     return errors
 
 
-def update_and_retrieve_repos(repositories, org_name=None, user_name=None):
-    subdirectory = org_name or user_name
+def update_and_retrieve_repos(repositories, subdirectory):
     repo_names = _get_repo_names(repositories)
     directory_names = _get_directory_names(subdirectory)
 
@@ -141,24 +140,45 @@ def _get_repo_names(repositories):
 # @click.option('--commits-day', default=None, help='Day to get commits for')
 @click.option('--repo-count', is_flag=True, help='Show the count of repos for the organization/user')
 @click.option('--get-repos', is_flag=True, help='Get any new repos and update existing repos')
-def main(token, org_name, user_name, commits_year, repo_count, get_repos):
+@click.option('--search', 'search_regex', default=None, help='Regex pattern to search for in the code')
+def main(token, org_name, user_name, commits_year, repo_count, get_repos, search_regex):
     if not token:
         return click.echo('ERROR: Please provide a token')
 
     if not org_name and not user_name:
         return click.echo('ERROR: Please provide an organization or user')
 
-    github = _github_login(token)
-    repositories = _get_repos(github, org_name, user_name)
-    repo_names = _get_repo_names(repositories)
-
-    if repo_count:
-        click.echo('Number of repos: {0}'.format(len(repo_names)))
+    subdirectory = org_name or user_name
+    repo_names = None
+    github = None
 
     if get_repos:
+        github = _github_login(token)
+        repositories = _get_repos(github, subdirectory)
+        repo_names = _get_repo_names(repositories)
+
         update_and_retrieve_repos(repositories, org_name=org_name, user_name=user_name)
+
+    if repo_count:
+        if not github:
+            github = _github_login(token)
+
+        if not repo_names:
+            repositories = _get_repos(github, subdirectory)
+            repo_names = _get_repo_names(repositories)
+
+        click.echo('Number of repos: {0}'.format(len(repo_names)))
 
     commits_month = None
     commits_day = None
     if commits_year or commits_month or commits_day:
         get_commit_count(repo_names, commits_year=commits_year, commits_month=commits_month, commits_day=commits_day)
+
+    if search_regex:
+        r = run('grin -i {0} {1} --emacs -s --force-color'.format(search_regex, subdirectory), stdout=Capture(), stderr=Capture())
+
+        if r.stderr.text:
+            click.echo(r.stderr.text)
+
+        if r.stdout.text:
+            click.echo(r.stdout.text)
