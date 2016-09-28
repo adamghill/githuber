@@ -106,8 +106,7 @@ def _get_directory_names(subdirectory):
     return directory_names
 
 
-def get_commit_count(repo_names, commits_year=None, commits_month=None, commits_day=None):
-    click.echo('Get commit count...')
+def get_commit_count(subdirectory, repo_names, commits_year=None, commits_month=None, commits_day=None):
     commits_count = 0
     commits_since = None
     commits_until = None
@@ -116,23 +115,29 @@ def get_commit_count(repo_names, commits_year=None, commits_month=None, commits_
         commits_since = '01/01/{0}'.format(commits_year)
         commits_until = '12/31/{0}'.format(commits_year)
     elif commits_month:
-        raise Exception('Not implemented')
+        raise Exception('commits_month functionality not implemented')
     elif commits_day:
-        raise Exception('Not implemented')
+        raise Exception('commits_day functionality not implemented')
     else:
         raise Exception('Not implemented')
 
-    for repo_name in repo_names:
-        if os.path.isdir(repo_name):
-            command = 'git rev-list --count --all --no-merges --since={0} --until={1}'\
-                .format(commits_since, commits_until)
-            r = run(command,
-                cwd=repo_name, stdout=Capture(), stderr=Capture())
+    progressbar_length = len(repo_names)
 
-            if r.returncode > 0:
-                commits_count += int(r.stdout.text)
+    with click.progressbar(repo_names, length=progressbar_length, label='Counting commits:') as repos:
+        for repo_name in repos:
+            repo_dir = os.path.join(subdirectory, repo_name)
 
-    click.echo('Number of commits: {0}'.format(commits_count))
+            if os.path.isdir(repo_dir):
+                command = 'git rev-list --count --all --no-merges --since={0} --until={1}'\
+                    .format(commits_since, commits_until)
+                r = run(command, cwd=repo_dir, stdout=Capture(), stderr=Capture())
+
+                if r.returncode == 0:
+                    if r.stdout.text:
+                        commits_count += int(r.stdout.text)
+
+    if commits_year:
+        click.echo('Number of commits for {0}: {1}'.format(commits_year, commits_count))
 
 
 @lru_cache()
@@ -177,6 +182,8 @@ def main(token, org_name, username, commits_year, count, update, search_regex):
         return click.echo('ERROR: Please provide an organization or user')
 
     subdirectory = org_name or username
+    repo_names = None
+    repositories = None
 
     if update:
         github = _github_login(token)
@@ -193,7 +200,13 @@ def main(token, org_name, username, commits_year, count, update, search_regex):
     commits_month = None
     commits_day = None
     if commits_year or commits_month or commits_day:
-        get_commit_count(repo_names, commits_year=commits_year, commits_month=commits_month, commits_day=commits_day)
+        github = _github_login(token)
+        repositories = _get_repos(github, subdirectory)
+
+        if not repo_names:
+            repo_names = _get_repo_names(repositories)
+
+        get_commit_count(subdirectory, repo_names, commits_year=commits_year, commits_month=commits_month, commits_day=commits_day)
 
     if search_regex:
         _echo(run('grin -i {0} {1} --emacs -s --force-color'.format(search_regex, subdirectory), stdout=Capture(), stderr=Capture()))
