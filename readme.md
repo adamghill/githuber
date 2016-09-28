@@ -23,6 +23,9 @@ Githuber is a command-line tool to handle keeping a large number of GitHub organ
 ## Example commands
 - githuber --token={PERSONAL_ACCESS_TOKEN} --organization=github --update --count --search="rails"
 
+## GitHub Personal Access Token
+Create a file named `githuber.token` with the personal access token from GitHub to get around pasting in the token everytime you use `githuber`.
+
 # Credits
 - http://github3py.readthedocs.org/
 - http://pythonhosted.org/sarge/

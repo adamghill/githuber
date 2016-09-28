@@ -11,7 +11,12 @@ logger = logging.getLogger(__name__)
 
 @lru_cache()
 def _github_login(token):
-    click.echo('Authenticating with token...')
+    message = 'Authenticating with token...'
+
+    if _get_token_from_file():
+        message = 'Authenticating with token from githuber.token file...'
+
+    click.echo(message)
     github = login(token=token)
     return github
 
@@ -145,8 +150,17 @@ def _echo(pipeline):
             click.echo(l.strip())
 
 
+@lru_cache()
+def _get_token_from_file():
+    try:
+        with open('githuber.token', 'r') as f:
+            return f.read().strip()
+    except IOError:
+        return None
+
+
 @click.command()
-@click.option('--token', help='Token', prompt=True, hide_input=True)
+@click.option('--token', help='Token', hide_input=True, default=_get_token_from_file)
 @click.option('--organization', 'org_name', default=None, help='Organization name')
 @click.option('--user', 'username', default=None, help='Username')
 @click.option('--commits-year', default=None, help='Year to get commits for')
